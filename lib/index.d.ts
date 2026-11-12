@@ -1,16 +1,22 @@
 import type { Context } from "@deepseek-ai/cordis";
+import Schema from "@deepseek-ai/schemastery";
 import { type DiaryEntry } from "./diary.js";
 export declare const name = "dsh-agentdiary-plugin";
 export declare const inject: readonly string[];
+export declare const Config: Schema<Schemastery.ObjectS<NoInfer<{
+    repo: Schema<string, string, "defined">;
+    node: Schema<string, string, "defined">;
+    commitEveryEntry: Schema<boolean, boolean, "defined">;
+}>>, Schemastery.ObjectT<NoInfer<{
+    repo: Schema<string, string, "defined">;
+    node: Schema<string, string, "defined">;
+    commitEveryEntry: Schema<boolean, boolean, "defined">;
+}>>, "plain">;
 export interface Config {
-    /** Absolute path to the agentdiary git repository. */
     repo: string;
-    /** This machine's short node name in the diary. */
     node: string;
-    /** Commit+push after every session entry. */
     commitEveryEntry: boolean;
 }
-export declare const Config: Config;
 interface SessionTally {
     id: string;
     startedAt: Date;

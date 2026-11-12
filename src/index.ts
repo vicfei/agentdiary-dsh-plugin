@@ -9,22 +9,24 @@
 // summarizing the event mix; the per-event firehose belongs to the evidence ledger.
 
 import type { Context } from "@deepseek-ai/cordis";
+import Schema from "@deepseek-ai/schemastery";
 import { appendEntry, commitDiary, type DiaryEntry } from "./diary.js";
 
 export const name = "dsh-agentdiary-plugin";
 
 export const inject: readonly string[] = [];
 
+export const Config = Schema.object({
+  repo: Schema.string().default("").description("absolute path to the agentdiary git repo (empty = disabled)"),
+  node: Schema.string().default("dsh-host").description("this machine's short name in the diary"),
+  commitEveryEntry: Schema.boolean().default(true).description("commit+push after every session entry"),
+});
+
 export interface Config {
-  /** Absolute path to the agentdiary git repository. */
   repo: string;
-  /** This machine's short node name in the diary. */
   node: string;
-  /** Commit+push after every session entry. */
   commitEveryEntry: boolean;
 }
-
-export const Config: Config = { repo: "", node: "dsh-host", commitEveryEntry: true } as unknown as Config;
 
 interface SessionTally {
   id: string;
