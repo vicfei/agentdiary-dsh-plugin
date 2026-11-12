@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "agentdiary",
+    "description": "Your agents keep a diary — in your own git repo. Captures DSH session events as append-only diary entries.",
+    "detail": "Configure a local git repo and a node name; every settled session turn becomes a dated entry under sessions/YYYY-MM/. Zero cloud, zero lock-in."
+  }
+}

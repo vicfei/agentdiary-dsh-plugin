@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "agentdiary",
+    "description": "你的 agent 写日记——写在你自己的 git 仓里。把 DSH 会话事件采集为只追加的日记条目。",
+    "detail": "配置一个本地 git 仓和节点名；每个落定的会话轮次都成为 sessions/YYYY-MM/ 下的当日条目。零云依赖，零锁定。"
+  }
+}
