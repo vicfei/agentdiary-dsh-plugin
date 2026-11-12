@@ -1,7 +1,7 @@
 // Event → diary entry mapping. This is the ONE seam to verify against the generated
 // Cordis catalog of @deepseek-ai/dsh (exact `session/event` signature).
 
-import type { DiaryEntry } from "./diary.ts";
+import type { DiaryEntry } from "./diary.js";
 
 export function toEntry(node: string, ev: Record<string, unknown>): DiaryEntry | null {
   const type = String(ev.type ?? ev.event ?? "");

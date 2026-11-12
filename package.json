@@ -1,30 +1,53 @@
 {
   "name": "dsh-agentdiary-plugin",
   "version": "0.1.0",
-  "description": "agentdiary for DeepSeek Harness — your agents keep a diary, in your own git repo. Captures session events into a git-native diary (sessions/YYYY-MM/DD-node.md) and syncs memory snapshots.",
+  "description": "agentdiary for DeepSeek Harness \u2014 your agents keep a diary, in your own git repo. Captures session events into a git-native diary (sessions/YYYY-MM/DD-node.md) and syncs memory snapshots.",
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/types/index.d.ts",
   "exports": {
-    ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["lib", "src", "locale", "README.md", "README.zh-CN.md"],
-  "engines": { "node": "^22.22.3 || >=24.0.0" },
+  "files": [
+    "lib",
+    "src",
+    "locale",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "engines": {
+    "node": "^22.22.3 || >=24.0.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "keywords": ["dsh-plugin", "deepseek-harness", "agentdiary", "diary", "sessions", "memory", "agent-log"],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "agentdiary",
+    "diary",
+    "sessions",
+    "memory",
+    "agent-log"
+  ],
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.0",
+    "@types/node": "^22.0.0"
   },
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/vicfei/agentdiary-dsh-plugin.git" }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vicfei/agentdiary-dsh-plugin.git"
+  }
 }

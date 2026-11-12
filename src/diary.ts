@@ -2,7 +2,7 @@
 // The diary contract mirrors the agentdiary spec (brainvault/agentdiary/design/DESIGN.md):
 //   sessions/YYYY-MM/YYYY-MM-DD-<node>.md   append-only entries
 
-import { appendFileSync, execFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 

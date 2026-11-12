@@ -11,7 +11,8 @@
 // check is a one-file review. See README "Verification checklist".
 
 import type { Context } from "@deepseek-ai/cordis";
-import { appendEntry, commitDiary } from "./diary.ts";
+import { appendEntry, commitDiary } from "./diary.js";
+import { toEntry } from "./entry.js";
 
 export const name = "dsh-agentdiary-plugin";
 
@@ -28,7 +29,8 @@ export interface Config {
 
 export const Config: Config = { repo: "", node: "dsh-host", commitEveryEntry: false } as unknown as Config;
 
-export { toEntry } from "./entry.ts";
+// re-exported below
+export { toEntry };
 
 export function apply(ctx: Context, config: Config): void {
   const log = ctx.logger;
@@ -40,7 +42,7 @@ export function apply(ctx: Context, config: Config): void {
     // Durable transcript stream per docs/agent-lifecycle.md; exact signature from the
     // generated Cordis catalog at load time.
     "session/event" as never,
-    (ev: Record<string, unknown>) => {
+    ((ev: Record<string, unknown>) => {
       const entry = toEntry(config.node, ev);
       if (!entry) return;
       try {
@@ -50,6 +52,6 @@ export function apply(ctx: Context, config: Config): void {
       } catch (e) {
         log.warn(`agentdiary: append failed: ${e instanceof Error ? e.message : String(e)}`);
       }
-    } as never,
+    }) as never,
   );
 }
