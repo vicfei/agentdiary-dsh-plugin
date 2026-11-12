@@ -22,7 +22,7 @@ interface SessionTally {
     startedAt: Date;
     kinds: Map<string, number>;
 }
+export { toEntry } from "./entry.js";
 export declare function summarize(t: SessionTally): DiaryEntry;
 export declare function apply(ctx: Context, config: Config): void;
-export {};
 //# sourceMappingURL=index.d.ts.map

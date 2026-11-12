@@ -34,6 +34,8 @@ interface SessionTally {
   kinds: Map<string, number>;
 }
 
+export { toEntry } from "./entry.js";
+
 export function summarize(t: SessionTally): DiaryEntry {
   const total = [...t.kinds.values()].reduce((a, b) => a + b, 0);
   const top = [...t.kinds.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => `${k}×${n}`);
