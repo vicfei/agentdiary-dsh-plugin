@@ -1,0 +1,4 @@
+# agentdiary: one host row. Session events become diary entries in your own git repo.
+- insert:
+    - id: agentdiary-session-diary
+      name: dsh-agentdiary-plugin
