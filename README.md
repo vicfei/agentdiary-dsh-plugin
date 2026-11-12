@@ -32,7 +32,7 @@ dsh plugin add vicfei/agentdiary-dsh-plugin
 
 ## Verification checklist (maintainer)
 
-1. Exact `session/event` Cordis signature vs the generated catalog of `@deepseek-ai/dsh` — the whole seam lives in `src/entry.ts`.
+1. ~~Exact `session/event` Cordis signature~~ **RESOLVED 2026-11-12** (verified against dsh-loopx-plugin observer + live boot): `ctx.on('session/event', (session, event))` — event is the SECOND arg; `inject: []`; `Config` must be a schemastery `Schema.object`; profile layer requires a `dsh.bundle.patch` manifest. Both entries activate clean in a headless boot.
 2. Live smoke under Node ≥22.22.3: load plugin, run one session, check the day file appears and commits.
 3. dsh-plugin.org submission: this repo is public with the `dsh-plugin` topic; npm publish after (1)+(2) pass.
 
