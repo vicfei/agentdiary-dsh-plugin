@@ -19,7 +19,7 @@ Sibling of the `agentdiary` CLI (personal agent diary across machines) and `dsh-
 From the plugin market (Settings → Plugin Market), or:
 
 ```sh
-dsh plugin add vicfei/agentdiary-dsh-plugin
+dsh plugin add dsh-agentdiary-plugin
 ```
 
 ## Configure

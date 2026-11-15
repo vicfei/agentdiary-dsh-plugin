@@ -19,7 +19,7 @@ sessions/2026-11/2026-11-12-<节点名>.md   # 只追加，每节点每日一文
 插件市场（Settings → Plugin Market）或：
 
 ```sh
-dsh plugin add vicfei/agentdiary-dsh-plugin
+dsh plugin add dsh-agentdiary-plugin
 ```
 
 ## 配置
