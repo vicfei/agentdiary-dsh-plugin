@@ -16,7 +16,7 @@ sessions/2026-11/2026-11-12-<节点名>.md   # 只追加，每节点每日一文
 
 ## 什么时候写一条日记
 
-每个**落定回合**写一条——harness 发出 `turn/end` 且原因为 `completed` / `error` / `max-tokens` / `aborted` 时。条目记录该回合的事件构成（`assistant/message×3 · tool/call×7 · …`）、耗时与结束方式。
+每个**落定回合**写一条——harness 发出 `turn/end` 且原因为 `completed` / `error` / `max-tokens` / `aborted` 时。0.2.0 起条目是**富条目**（纯截取，零模型调用）：工具构成（`tools: bash×3 · edit×1`）、事件构成、以及 agent 自己的收尾原话（尾部引用 `said: "…12 个测试全过。"`），外加耗时与结束方式。
 
 不会写成条目的原因：`blocked`（会作为新回合重试）、`interrupted`/`forked`（记账性收尾）——它们的事件留在账上，随下一个落定回合一并呈现，绝不丢弃。
 
@@ -48,7 +48,7 @@ dsh plugin --profile web add dsh-agentdiary-plugin
 
 1. ~~`session/event` 精确签名~~ **2026-11-12 已解决**：`ctx.on('session/event', (session, event))`——event 是第二个参数；`inject: []`；`Config` 用 schemastery `Schema.object`；profile 层需要 `dsh.bundle.patch` manifest。
 2. ~~真机冒烟~~ **2026-11-18 以 0.1.3 通过**（win11，真实 web 回合）：当日文件出现 `turn N completed` 条目带事件构成，commitEveryEntry 提交在链，零告警。三轮收敛史：0.1.0 挂 disposed（仅 store 分离）；0.1.1 发了陈旧 lib/（现已 prepack 强制重建）；0.1.2 平读 turn/reason 但宿主包在 `event.data` 里（`SessionEvent = { type, seq, time, data }`）；0.1.3 解包 + 扁平兼容 + 未知 kind 告警。
-3. dsh-plugin.org 提交：本仓公开并带 `dsh-plugin` topic；npm 0.1.3 已上线。
+3. dsh-plugin.org 提交：本仓公开并带 `dsh-plugin` topic；npm 0.1.3 已上线；0.2.0 增加富条目（工具 + 收尾原话引用）。
 
 ## 许可证
 

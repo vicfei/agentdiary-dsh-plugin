@@ -22,8 +22,14 @@ interface TurnTally {
     id: string;
     startedAt: Date;
     kinds: Map<string, number>;
+    /** P1 rich entries: tool-call names by count, and the assistant's last spoken text. */
+    tools: Map<string, number>;
+    lastText: string;
 }
 export { toEntry } from "./entry.js";
 export declare function summarize(t: TurnTally, label: string): DiaryEntry;
+/** Pull the plain text out of an assistant message's content blocks
+ *  (ContentBlock union: text blocks are { type: 'text', text }). */
+export declare function assistantText(data: unknown): string;
 export declare function apply(ctx: Context, config: Config): void;
 //# sourceMappingURL=index.d.ts.map

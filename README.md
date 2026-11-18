@@ -16,7 +16,7 @@ Sibling of the `agentdiary` CLI (personal agent diary across machines) and `dsh-
 
 ## When a diary entry appears
 
-One entry per **settled turn** — when the harness emits `turn/end` with reason `completed`, `error`, `max-tokens`, or `aborted`. The entry records the event mix of that turn (`assistant/message×3 · tool/call×7 · …`), its duration, and how it ended.
+One entry per **settled turn** — when the harness emits `turn/end` with reason `completed`, `error`, `max-tokens`, or `aborted`. Since 0.2.0 the entry is **rich** (pure extraction, no model calls): the tool mix (`tools: bash×3 · edit×1`), the event mix, and the agent's own closing words, tail-quoted (`said: "…all 12 tests pass now."`), plus the duration and how it ended.
 
 Reasons you will *not* see as entries: `blocked` (retried as a new turn), `interrupted`/`forked` (bookkeeping closers) — their events stay on the books and surface with the next settled turn, never dropped.
 
@@ -48,7 +48,7 @@ dsh plugin --profile web add dsh-agentdiary-plugin
 
 1. ~~Exact `session/event` Cordis signature~~ **RESOLVED 2026-11-12** (verified against dsh-loopx-plugin observer + live boot): `ctx.on('session/event', (session, event))` — event is the SECOND arg; `inject: []`; `Config` must be a schemastery `Schema.object`; profile layer requires a `dsh.bundle.patch` manifest. Both entries activate clean in a headless boot.
 2. ~~Live smoke~~ **PASSED 2026-11-18 with 0.1.3** (win11, real web turn): the day file gains a `turn N completed` entry with the event mix, `commitEveryEntry` commits land on the chain, zero warnings. Three-round convergence to get here: 0.1.0 keyed on `session/disposed` (store-detach only — see above); 0.1.1 shipped a stale `lib/` (publish now runs `prepack`); 0.1.2 read `turn`/`reason` flat but the harness wraps them in `event.data` (`SessionEvent = { type, seq, time, data }`); 0.1.3 unwraps with a flat fallback and warns on unknown `reason.kind`.
-3. dsh-plugin.org submission: this repo is public with the `dsh-plugin` topic; npm 0.1.3 live.
+3. dsh-plugin.org submission: this repo is public with the `dsh-plugin` topic; npm 0.1.3 live; 0.2.0 adds rich entries (tools + quoted closing text).
 
 ## License
 

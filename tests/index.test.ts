@@ -101,3 +101,34 @@ describe("agentdiary trigger contract (v0.1.1)", () => {
     expect(readFileSync(dayFile(), "utf8")).toContain("session torn down mid-turn");
   });
 });
+
+describe("P1 rich entries (0.2.0)", () => {
+  it("tools and the assistant's closing words land in the entry body", () => {
+    start();
+    emit("turn/start", { turn: 1 });
+    emit("tool/call", { turn: 1, step: 1, callId: "c1", name: "bash", arguments: "{}" });
+    emit("tool/call", { turn: 1, step: 2, callId: "c2", name: "bash", arguments: "{}" });
+    emit("tool/call", { turn: 1, step: 3, callId: "c3", name: "edit", arguments: "{}" });
+    emit("assistant/message", { turn: 1, step: 4, message: { id: "m1", role: "assistant", content: [
+      { type: "tool_use", name: "bash" },
+      { type: "text", text: "Fixed the parser.\nAll 12 tests pass now." },
+    ], source: { kind: "model" } } });
+    emit("turn/end", { turn: 1, reason: { kind: "completed" } });
+    const body = readFileSync(dayFile(), "utf8");
+    expect(body).toContain("tools: bash×2 · edit×1");
+    expect(body).toContain("said: “Fixed the parser. All 12 tests pass now.”");
+    expect(body).toContain("turn 1 completed");
+  });
+
+  it("long closing text is tail-quoted with an ellipsis; non-text blocks ignored", () => {
+    start();
+    emit("assistant/message", { turn: 1, step: 1, message: { content: [
+      { type: "text", text: "A".repeat(400) + " THE-END" },
+    ] } });
+    emit("turn/end", { turn: 1, reason: { kind: "completed" } });
+    const body = readFileSync(dayFile(), "utf8");
+    expect(body).toContain("…");
+    expect(body).toContain("THE-END”");
+    expect(body).toContain("A".repeat(100)); // tail-kept, head truncated
+  });
+});
