@@ -39,6 +39,10 @@ interface TurnTally {
   /** P1 rich entries: tool-call names by count, and the assistant's last spoken text. */
   tools: Map<string, number>;
   lastText: string;
+  /** Active-duration accounting (0.2.1): wall-clock time between events, each gap capped —
+   *  a turn that sat 160 min waiting on a human approval reads ~15 min, not ~164 (win11 smoke). */
+  activeMs: number;
+  lastEventAt: number;
 }
 
 /** turn/end reasons that mean "this task attempt settled" — the rest are
@@ -52,12 +56,15 @@ const QUIET = new Set(["blocked", "interrupted", "forked", ""]);
  *  no model calls — the quote is what the agent SAID, verbatim, tail-kept). */
 const QUOTE_MAX = 160;
 
+/** Any silent gap longer than this counts as waiting (approval, human, lunch), not work. */
+const IDLE_GAP_CAP_MS = 15 * 60_000;
+
 export { toEntry } from "./entry.js";
 
 export function summarize(t: TurnTally, label: string): DiaryEntry {
   const total = [...t.kinds.values()].reduce((a, b) => a + b, 0);
   const top = [...t.kinds.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k}×${n}`);
-  const minutes = Math.max(1, Math.round((Date.now() - t.startedAt.getTime()) / 60000));
+  const minutes = Math.max(1, Math.round(t.activeMs / 60000));
   const did: string[] = [];
   // what it did, in descending order of workiness: tools first, then event mix, then its own words
   if (t.tools.size > 0) {
@@ -95,7 +102,10 @@ export function apply(ctx: Context, config: Config): void {
     return;
   }
   const open = new Map<string, TurnTally>();
-  const fresh = (id: string): TurnTally => ({ id, startedAt: new Date(), kinds: new Map(), tools: new Map(), lastText: "" });
+  const fresh = (id: string): TurnTally => {
+    const now = Date.now();
+    return { id, startedAt: new Date(now), kinds: new Map(), tools: new Map(), lastText: "", activeMs: 0, lastEventAt: now };
+  };
 
   const write = (t: TurnTally, label: string): void => {
     try {
@@ -114,6 +124,9 @@ export function apply(ctx: Context, config: Config): void {
   ctx.on("session/event" as never, ((session: { id?: unknown }, event: { type?: unknown; data?: { reason?: { kind?: unknown }; turn?: unknown; name?: unknown } }) => {
     const id = String(session?.id ?? "unknown");
     const t = open.get(id) ?? fresh(id);
+    const now = Date.now();
+    t.activeMs += Math.min(now - t.lastEventAt, IDLE_GAP_CAP_MS);
+    t.lastEventAt = now;
     const type = String(event?.type ?? "unknown");
     t.kinds.set(type, (t.kinds.get(type) ?? 0) + 1);
     const p = event?.data ?? event; // the harness wraps the typed payload in .data

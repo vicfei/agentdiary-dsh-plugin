@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apply } from "../src/index.ts";
 
 let dir: string;
@@ -130,5 +130,24 @@ describe("P1 rich entries (0.2.0)", () => {
     expect(body).toContain("…");
     expect(body).toContain("THE-END”");
     expect(body).toContain("A".repeat(100)); // tail-kept, head truncated
+  });
+});
+
+describe("active duration (0.2.1)", () => {
+  it("a long idle gap waiting on a human counts at most the cap, not wall-clock", async () => {
+    vi.useFakeTimers();
+    try {
+      start();
+      emit("turn/start", { turn: 1 });                       // t0
+      vi.advanceTimersByTime(60_000);
+      emit("user/message", {});                               // +1 min active
+      vi.advanceTimersByTime(164 * 60_000);                   // the approval wait — dead time
+      vi.setSystemTime(Date.now() + 30_000);
+      emit("turn/end", { turn: 1, reason: { kind: "completed" } }); // +cap only
+      const body = readFileSync(dayFile(), "utf8");
+      expect(body).toMatch(/over ~16 min/); // 1 + 15(cap) + 0.5 ≈ 16 — NOT ~165
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

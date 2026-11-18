@@ -25,6 +25,10 @@ interface TurnTally {
     /** P1 rich entries: tool-call names by count, and the assistant's last spoken text. */
     tools: Map<string, number>;
     lastText: string;
+    /** Active-duration accounting (0.2.1): wall-clock time between events, each gap capped —
+     *  a turn that sat 160 min waiting on a human approval reads ~15 min, not ~164 (win11 smoke). */
+    activeMs: number;
+    lastEventAt: number;
 }
 export { toEntry } from "./entry.js";
 export declare function summarize(t: TurnTally, label: string): DiaryEntry;

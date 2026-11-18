@@ -1,6 +1,6 @@
 {
   "name": "dsh-agentdiary-plugin",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "agentdiary for DeepSeek Harness — your agents keep a diary, in your own git repo. Captures session events into a git-native diary (sessions/YYYY-MM/DD-node.md) and syncs memory snapshots.",
   "type": "module",
   "main": "./lib/index.js",
