@@ -47,8 +47,8 @@ dsh plugin --profile web add dsh-agentdiary-plugin
 ## 维护者验证清单
 
 1. ~~`session/event` 精确签名~~ **2026-11-12 已解决**：`ctx.on('session/event', (session, event))`——event 是第二个参数；`inject: []`；`Config` 用 schemastery `Schema.object`；profile 层需要 `dsh.bundle.patch` manifest。
-2. ~~真机冒烟~~ **v0.1.0 失败 → v0.1.1 已根因**：`session/disposed` 在 complete/archive/kill 时都不触发（仅 store 分离，见上文）。重验方式：跑一个完整回合，当日文件应出现 `turn N completed` 条目。
-3. dsh-plugin.org 提交：本仓公开并带 `dsh-plugin` topic；npm 发布在 (2) 通过后。
+2. ~~真机冒烟~~ **2026-11-18 以 0.1.3 通过**（win11，真实 web 回合）：当日文件出现 `turn N completed` 条目带事件构成，commitEveryEntry 提交在链，零告警。三轮收敛史：0.1.0 挂 disposed（仅 store 分离）；0.1.1 发了陈旧 lib/（现已 prepack 强制重建）；0.1.2 平读 turn/reason 但宿主包在 `event.data` 里（`SessionEvent = { type, seq, time, data }`）；0.1.3 解包 + 扁平兼容 + 未知 kind 告警。
+3. dsh-plugin.org 提交：本仓公开并带 `dsh-plugin` topic；npm 0.1.3 已上线。
 
 ## 许可证
 

@@ -47,8 +47,8 @@ dsh plugin --profile web add dsh-agentdiary-plugin
 ## Verification checklist (maintainer)
 
 1. ~~Exact `session/event` Cordis signature~~ **RESOLVED 2026-11-12** (verified against dsh-loopx-plugin observer + live boot): `ctx.on('session/event', (session, event))` — event is the SECOND arg; `inject: []`; `Config` must be a schemastery `Schema.object`; profile layer requires a `dsh.bundle.patch` manifest. Both entries activate clean in a headless boot.
-2. ~~Live smoke~~ **v0.1.0 FAIL → v0.1.1 root-caused**: `session/disposed` never fires on complete/archive/kill (store-detach only — see "When a diary entry appears"). Re-verify with one turn run to completion; the day file should gain a `turn N completed` entry.
-3. dsh-plugin.org submission: this repo is public with the `dsh-plugin` topic; npm publish after (2) passes.
+2. ~~Live smoke~~ **PASSED 2026-11-18 with 0.1.3** (win11, real web turn): the day file gains a `turn N completed` entry with the event mix, `commitEveryEntry` commits land on the chain, zero warnings. Three-round convergence to get here: 0.1.0 keyed on `session/disposed` (store-detach only — see above); 0.1.1 shipped a stale `lib/` (publish now runs `prepack`); 0.1.2 read `turn`/`reason` flat but the harness wraps them in `event.data` (`SessionEvent = { type, seq, time, data }`); 0.1.3 unwraps with a flat fallback and warns on unknown `reason.kind`.
+3. dsh-plugin.org submission: this repo is public with the `dsh-plugin` topic; npm 0.1.3 live.
 
 ## License
 
