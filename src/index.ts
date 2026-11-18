@@ -1,12 +1,15 @@
 // dsh-agentdiary-plugin — agentdiary for DeepSeek Harness.
 // "Your agents keep a diary — in your own git repo."
 //
-// Contract (verified against dsh-loopx-plugin's observer, the reference implementation):
+// Contract (verified against the harness source, packages/core/session):
 //   ctx.on('session/created',  session => ...)
 //   ctx.on('session/event',   (session, event) => ...)   // event is the SECOND argument
 //   ctx.on('session/disposed', session => ...)
-// Diary semantics = task-level granularity: ONE entry per session (on disposal),
-// summarizing the event mix; the per-event firehose belongs to the evidence ledger.
+// `session/disposed` fires only when a session is DETACHED from the store —
+// process teardown, not task completion (a completed/archived session stays in
+// the store; v0.1.0 keyed on it and never wrote a single entry). v0.1.1 keys
+// the diary on `turn/end` instead: one entry per settled turn. Disposal stays
+// as a best-effort sweep for work interrupted mid-turn.
 
 import type { Context } from "@deepseek-ai/cordis";
 import Schema from "@deepseek-ai/schemastery";
@@ -19,7 +22,7 @@ export const inject: readonly string[] = [];
 export const Config = Schema.object({
   repo: Schema.string().default("").description("absolute path to the agentdiary git repo (empty = disabled)"),
   node: Schema.string().default("dsh-host").description("this machine's short name in the diary"),
-  commitEveryEntry: Schema.boolean().default(true).description("commit+push after every session entry"),
+  commitEveryEntry: Schema.boolean().default(true).description("commit+push after every diary entry"),
 });
 
 export interface Config {
@@ -28,21 +31,26 @@ export interface Config {
   commitEveryEntry: boolean;
 }
 
-interface SessionTally {
+/** One open tally per session — counts events since the last settled turn. */
+interface TurnTally {
   id: string;
   startedAt: Date;
   kinds: Map<string, number>;
 }
 
+/** turn/end reasons that mean "this task attempt settled" — the rest are
+ *  bookkeeping closers (interrupted/forked) or may be retried (blocked). */
+const SETTLED = new Set(["completed", "error", "max-tokens", "aborted"]);
+
 export { toEntry } from "./entry.js";
 
-export function summarize(t: SessionTally): DiaryEntry {
+export function summarize(t: TurnTally, label: string): DiaryEntry {
   const total = [...t.kinds.values()].reduce((a, b) => a + b, 0);
   const top = [...t.kinds.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => `${k}×${n}`);
   const minutes = Math.max(1, Math.round((Date.now() - t.startedAt.getTime()) / 60000));
   return {
     at: new Date(),
-    task: `DSH session ${t.id} settled`,
+    task: `DSH session ${t.id.slice(0, 12)} ${label}`,
     did: top.length > 0 ? top : ["no session events observed"],
     result: `${total} events over ~${minutes} min`,
   };
@@ -54,29 +62,45 @@ export function apply(ctx: Context, config: Config): void {
     log.warn("agentdiary: config.repo empty — diary disabled");
     return;
   }
-  const open = new Map<string, SessionTally>();
+  const open = new Map<string, TurnTally>();
+  const fresh = (id: string): TurnTally => ({ id, startedAt: new Date(), kinds: new Map() });
+
+  const write = (t: TurnTally, label: string): void => {
+    try {
+      const file = appendEntry({ root: config.repo, node: config.node }, summarize(t, label));
+      log.info(`agentdiary: ${label} -> ${file}`);
+      if (config.commitEveryEntry) commitDiary(config.repo, `diary: session ${t.id.slice(0, 12)} ${label}`);
+    } catch (e) {
+      log.warn(`agentdiary: append failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
   ctx.on("session/created" as never, ((session: { id?: unknown }) => {
-    const id = String(session?.id ?? "unknown");
-    open.set(id, { id, startedAt: new Date(), kinds: new Map() });
+    open.set(String(session?.id ?? "unknown"), fresh(String(session?.id ?? "unknown")));
   }) as never);
-  ctx.on("session/event" as never, ((session: { id?: unknown }, event: { type?: unknown }) => {
+
+  ctx.on("session/event" as never, ((session: { id?: unknown }, event: { type?: unknown; reason?: { kind?: unknown }; turn?: unknown }) => {
     const id = String(session?.id ?? "unknown");
-    const t = open.get(id) ?? { id, startedAt: new Date(), kinds: new Map() };
-    const kind = String(event?.type ?? "unknown");
-    t.kinds.set(kind, (t.kinds.get(kind) ?? 0) + 1);
+    const t = open.get(id) ?? fresh(id);
+    const type = String(event?.type ?? "unknown");
+    t.kinds.set(type, (t.kinds.get(type) ?? 0) + 1);
     open.set(id, t);
+    if (type !== "turn/end") return;
+    const kind = String(event?.reason?.kind ?? "");
+    if (!SETTLED.has(kind)) return; // blocked/interrupted/forked: keep the tally — the work
+    // stays on the books and surfaces with the next settled turn (never dropped)
+    const label = `turn ${String(event?.turn ?? "?")} ${kind}`;
+    write(t, label);
+    open.set(id, fresh(id));
   }) as never);
+
   ctx.on("session/disposed" as never, ((session: { id?: unknown }) => {
     const id = String(session?.id ?? "unknown");
     const t = open.get(id);
     if (!t) return;
     open.delete(id);
-    try {
-      const file = appendEntry({ root: config.repo, node: config.node }, summarize(t));
-      log.info(`agentdiary: session ${id} -> ${file}`);
-      if (config.commitEveryEntry) commitDiary(config.repo, `diary: session ${id}`);
-    } catch (e) {
-      log.warn(`agentdiary: append failed: ${e instanceof Error ? e.message : String(e)}`);
-    }
+    // Teardown mid-turn: the events counted so far never got their turn/end —
+    // they deserve a line, clearly labeled as a teardown rather than a settlement.
+    if ([...t.kinds.values()].reduce((a, b) => a + b, 0) > 0) write(t, "session torn down mid-turn");
   }) as never);
 }
