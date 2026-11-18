@@ -17,12 +17,13 @@ export interface Config {
     node: string;
     commitEveryEntry: boolean;
 }
-interface SessionTally {
+/** One open tally per session — counts events since the last settled turn. */
+interface TurnTally {
     id: string;
     startedAt: Date;
     kinds: Map<string, number>;
 }
 export { toEntry } from "./entry.js";
-export declare function summarize(t: SessionTally): DiaryEntry;
+export declare function summarize(t: TurnTally, label: string): DiaryEntry;
 export declare function apply(ctx: Context, config: Config): void;
 //# sourceMappingURL=index.d.ts.map
