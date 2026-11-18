@@ -20,14 +20,17 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 const ctx = {
   on: (name: string, fn: (session: unknown, event?: unknown) => void) => handlers.set(name, fn),
-  logger: { info: () => {}, warn: () => {} },
+  logger: { info: () => {}, warn: (m: string) => warns.push(String(m)) },
 } as never;
+const warns: string[] = [];
 
 const start = (): void => {
+  warns.length = 0;
   apply(ctx, { repo: dir, node: "laptop", commitEveryEntry: false });
 };
-const emit = (type: string, extra: Record<string, unknown> = {}): void =>
-  handlers.get("session/event")!({ id: "s1" }, { type, ...extra });
+// the harness's real dispatch shape: { type, seq, time, data: { turn, reason } }
+const emit = (type: string, data: Record<string, unknown> = {}): void =>
+  handlers.get("session/event")!({ id: "s1" }, { type, seq: 1, time: 0, data });
 const dayFile = (): string => {
   const today = new Date().toISOString().slice(0, 10);
   const ym = today.slice(0, 7);
@@ -54,6 +57,21 @@ describe("agentdiary trigger contract (v0.1.1)", () => {
     expect(body2).toContain("turn 2 error");
     expect(body2.indexOf("turn 1 completed")).toBeLessThan(body2.indexOf("turn 2 error"));
     expect(body2.match(/tool\/call×1/g)).toHaveLength(1);
+  });
+
+  it("also accepts the flat dispatch shape (no .data wrapper) — either way the turn lands", () => {
+    start();
+    handlers.get("session/event")!({ id: "s1" }, { type: "turn/end", turn: 7, reason: { kind: "completed" } });
+    expect(readFileSync(dayFile(), "utf8")).toContain("turn 7 completed");
+  });
+
+  it("warns on a turn/end whose reason.kind is neither settled nor known-quiet", () => {
+    start();
+    emit("turn/end", { turn: 1, reason: { kind: "wat" } });
+    expect(warns.some(w => w.includes("wat"))).toBe(true);
+    expect(existsSync(dayFile())).toBe(false);
+    emit("turn/end", { turn: 2, reason: { kind: "blocked" } }); // known-quiet: no warn
+    expect(warns.length).toBe(1);
   });
 
   it("does NOT write for blocked/interrupted/forked closers, but rolls the tally over", () => {

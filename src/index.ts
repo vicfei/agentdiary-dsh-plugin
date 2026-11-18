@@ -42,6 +42,9 @@ interface TurnTally {
  *  bookkeeping closers (interrupted/forked) or may be retried (blocked). */
 const SETTLED = new Set(["completed", "error", "max-tokens", "aborted"]);
 
+/** turn/end reasons we deliberately do not diary, without warning. */
+const QUIET = new Set(["blocked", "interrupted", "forked", ""]);
+
 export { toEntry } from "./entry.js";
 
 export function summarize(t: TurnTally, label: string): DiaryEntry {
@@ -79,17 +82,26 @@ export function apply(ctx: Context, config: Config): void {
     open.set(String(session?.id ?? "unknown"), fresh(String(session?.id ?? "unknown")));
   }) as never);
 
-  ctx.on("session/event" as never, ((session: { id?: unknown }, event: { type?: unknown; reason?: { kind?: unknown }; turn?: unknown }) => {
+  ctx.on("session/event" as never, ((session: { id?: unknown }, event: { type?: unknown; data?: { reason?: { kind?: unknown }; turn?: unknown }; reason?: { kind?: unknown }; turn?: unknown }) => {
     const id = String(session?.id ?? "unknown");
     const t = open.get(id) ?? fresh(id);
     const type = String(event?.type ?? "unknown");
     t.kinds.set(type, (t.kinds.get(type) ?? 0) + 1);
     open.set(id, t);
     if (type !== "turn/end") return;
-    const kind = String(event?.reason?.kind ?? "");
-    if (!SETTLED.has(kind)) return; // blocked/interrupted/forked: keep the tally — the work
-    // stays on the books and surfaces with the next settled turn (never dropped)
-    const label = `turn ${String(event?.turn ?? "?")} ${kind}`;
+    // The harness wraps the typed payload in `event.data` (SessionEvent = { type, seq,
+    // time, data: SessionEventMap[K] } — packages/core/session/src/types.ts). Read through
+    // the wrapper, falling back to the flat shape so either dispatch survives.
+    const p = event?.data ?? event;
+    const kind = String(p?.reason?.kind ?? "");
+    if (!SETTLED.has(kind)) {
+      // blocked/interrupted/forked: known-quiet — keep the tally, the work surfaces with the
+      // next settled turn. Anything else is a contract surprise: say so instead of silently
+      // dropping the turn (live lesson: one silent mismatch cost a smoke round-trip).
+      if (!QUIET.has(kind)) log.warn(`agentdiary: turn/end with unrecognized reason.kind=${JSON.stringify(kind)} — no diary entry written`);
+      return;
+    }
+    const label = `turn ${String(p?.turn ?? "?")} ${kind}`;
     write(t, label);
     open.set(id, fresh(id));
   }) as never);
