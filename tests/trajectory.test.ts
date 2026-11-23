@@ -20,7 +20,7 @@ beforeEach(() => {
 
 describe("scanSensitive", () => {
   it("catches the built-in families and reports kinds only, never content", () => {
-    const hits = scanSensitive('my key is ghp_ABCDEFGHIJKLMNOPQR and see corp.corporate.net for https://intra.paic.com/x; jwt eyJhbGciOi.eyJzdWIiOiJ1.cCJ9abcde');
+    const hits = scanSensitive('my key is ghp_ABCDEFGHIJKLMNOPQR and see corp.corporate.net for https://intra.paic.com/x; jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.cCJ9abcdeFG');
     const kinds = hits.map((h) => h.kind);
     expect(kinds).toContain("github-pat");
     expect(kinds).toContain("jwt");
