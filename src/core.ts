@@ -27,6 +27,9 @@ export interface TurnTally {
    *  sat 160 min waiting on a human approval reads ~15 min, not ~164 (win11 smoke). */
   activeMs: number;
   lastEventAt: number;
+  /** Token usage when the host reports it (turn/end payload `.usage`, or any event
+   *  carrying one — OpenAI or plain spellings). Forward-compatible: absent = unknown. */
+  usage?: { input: number; output: number };
 }
 
 /** turn/end reasons that mean "this task attempt settled" — the rest are
@@ -65,6 +68,7 @@ export function summarize(t: TurnTally, label: string): DiaryEntry {
   }
   if (top.length > 0) did.push(top.join(" · "));
   if (t.lastText) did.push(`said: “${t.lastText}”`);
+  if (t.usage) did.push(`tokens: in ${t.usage.input} · out ${t.usage.output}`);
   return {
     at: new Date(),
     task: `DSH session ${t.id.slice(0, 12)} ${label}`,
@@ -133,6 +137,13 @@ export class DiaryCore {
     const p = e.data;
     const toolName = (p as { name?: unknown })?.name;
     if (type === "tool/call" && typeof toolName === "string") t.tools.set(toolName, (t.tools.get(toolName) ?? 0) + 1);
+    const u = (p as { usage?: Record<string, unknown> })?.usage;
+    if (u && typeof u === "object") {
+      const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined);
+      const input = num(u.input) ?? num(u.prompt_tokens);
+      const output = num(u.output) ?? num(u.completion_tokens);
+      if (input !== undefined || output !== undefined) t.usage = { input: input ?? 0, output: output ?? 0 };
+    }
     if (type === "assistant/message") {
       const spoken = assistantText(p);
       if (spoken) t.lastText = spoken;
