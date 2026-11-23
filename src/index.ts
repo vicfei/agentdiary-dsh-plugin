@@ -15,7 +15,9 @@
 import type { Context } from "@deepseek-ai/cordis";
 import Schema from "@deepseek-ai/schemastery";
 import { appendEntry, commitDiary, type DiaryEntry } from "./diary.js";
+import type { DiarySink } from "./core.js";
 import { DiaryCore, MarkdownSink, summarize, assistantText, type TurnTally } from "./core.js";
+import { TrajectorySink } from "./trajectory.js";
 
 export { toEntry } from "./entry.js";
 export { summarize, assistantText, type TurnTally } from "./core.js";
@@ -28,12 +30,16 @@ export const Config = Schema.object({
   repo: Schema.string().default("").description("absolute path to the agentdiary git repo (empty = disabled)"),
   node: Schema.string().default("dsh-host").description("this machine's short name in the diary"),
   commitEveryEntry: Schema.boolean().default(true).description("commit+push after every diary entry"),
+  trajectory: Schema.boolean().default(false).description("also write machine-readable JSONL trajectories (v0.4)"),
+  extraSensitivePatterns: Schema.array(Schema.string()).description("extra regex patterns for the trajectory sensitive-scan (owner rules)"),
 });
 
 export interface Config {
   repo: string;
   node: string;
   commitEveryEntry: boolean;
+  trajectory?: boolean;
+  extraSensitivePatterns?: string[];
 }
 
 export function apply(ctx: Context, config: Config): void {
@@ -46,7 +52,11 @@ export function apply(ctx: Context, config: Config): void {
     info: (m) => log.info(`agentdiary: ${m}`),
     warn: (m) => log.warn(`agentdiary: ${m}`),
   });
-  const core = new DiaryCore({ node: config.node }, [sink]);
+  const sinks: DiarySink[] = [sink];
+  if (config.trajectory) {
+    sinks.push(new TrajectorySink({ root: config.repo, node: config.node, extraSensitivePatterns: config.extraSensitivePatterns ?? [], log: { info: (m) => log.info(`agentdiary: ${m}`), warn: (m) => log.warn(`agentdiary: ${m}`) } }));
+  }
+  const core = new DiaryCore({ node: config.node }, sinks);
 
   ctx.on("session/created" as never, ((session: { id?: unknown }) => {
     core.handle({ id: String(session?.id ?? "unknown"), phase: "created" });
