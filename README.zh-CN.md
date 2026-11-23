@@ -50,6 +50,23 @@ dsh plugin --profile web add dsh-agentdiary-plugin
 2. ~~真机冒烟~~ **2026-11-18 以 0.1.3 通过**（win11，真实 web 回合）：当日文件出现 `turn N completed` 条目带事件构成，commitEveryEntry 提交在链，零告警。三轮收敛史：0.1.0 挂 disposed（仅 store 分离）；0.1.1 发了陈旧 lib/（现已 prepack 强制重建）；0.1.2 平读 turn/reason 但宿主包在 `event.data` 里（`SessionEvent = { type, seq, time, data }`）；0.1.3 解包 + 扁平兼容 + 未知 kind 告警。
 3. dsh-plugin.org 提交：本仓公开并带 `dsh-plugin` topic；npm 0.1.3 已上线；0.2.0 增加富条目（工具 + 收尾原话引用）。
 
+## 轨迹(v0.4)
+
+开启 `trajectory: true` 后,每个结算 turn 还会落一行 JSONL 到 `trajectories/YYYY-MM/DD-node.jsonl`——工具按名与次数、事件构成、活跃时长、尾引、结果,宿主上报时含 token 用量。这就是 thin-agent 蒸馏方案点名的那个采集层("audit.jsonl ≈ 轨迹记录器九成现成"):结构化、可 grep、与日记同一个 append-only git 仓。
+
+每行先过**敏感扫描**——七个内建家族(GitHub PAT、`sk-` 密钥、npm token、AWS key、私钥块、JWT、11-18 教训里的公司域家族)加 owner 自定义正则——以种类与次数告警,**不回显内容、不阻断**(私有仓零脱敏裁定照旧;导出前请复核)。
+
+## 适配器(v0.3)
+
+日记引擎(`core.ts`)与宿主无关:适配器把各 harness 的事件流归一化喂给它,共用同一套富条目管线。
+
+- **Cordis**(`index.ts`)——DeepSeek Harness,元祖。
+- **OAR**(`src/adapters/oar.ts`)——[Open Agent Runtime](https://github.com/botiverse/oar)(约 15 个 coding-agent runtime 共享一个编程接口,定位是**库不是协议**)。零依赖:宿主持有 OAR session、以鸭子类型传入;映射按 oar 的 `docs/spec/record-stream.md` 实测(`tool_call_started`→tool/call、`text_delta` 累积成尾引、`turn_ended`→结算、生命周期记录→收尾扫除)。
+
+**对 fleet 的意义**:zcode/claude/codex 的会话写进同一本日记——覆盖面跟随多 harness 现实,引擎零改动。
+
+**为什么日记扛得住 compaction。** 长任务实战报告命名了*保留倒置*:harness 压缩会静默丢掉只活在上下文里的治理约束。日记是对重——append-only、git 原生、记录做过什么与说过什么,上下文没了也能重读。
+
 ## 许可证
 
 MIT
